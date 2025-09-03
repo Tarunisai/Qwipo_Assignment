@@ -6,7 +6,7 @@ const fs = require('fs');
 const path = require('path');
 
 const app = express();
-app.use(cors());
+app.use(cors({ origin: 'https://qwipo-frontend-3mb0.onrender.com' }));
 app.use(express.json());
 
 const logsDir = path.join(__dirname, 'logs');
