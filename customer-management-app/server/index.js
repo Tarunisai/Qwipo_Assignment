@@ -146,18 +146,29 @@ app.get('/api/customers/:id', (req, res, next) => {
 // POST create customer
 app.post('/api/customers', (req, res, next) => {
     const { first_name, last_name, phone_number } = req.body;
+
     if (!first_name || !last_name || !phone_number) {
         return res.status(400).json({ error: "All fields are required" });
     }
+
     const sql = `INSERT INTO customers (first_name, last_name, phone_number) VALUES (?, ?, ?)`;
     db.run(sql, [first_name, last_name, phone_number], function(err) {
         if (err) {
             logErrorToFile({ message: err.message, route: '/api/customers', body: req.body });
             return next(err);
         }
-        res.status(201).json({ message: "Customer created", id: this.lastID });
+
+        // Return the new customer in a `data` object
+        db.get(`SELECT * FROM customers WHERE id = ?`, [this.lastID], (err, row) => {
+            if (err) {
+                logErrorToFile({ message: err.message, route: '/api/customers/get', body: req.body });
+                return next(err);
+            }
+            res.status(201).json({ message: "Customer created", data: row });
+        });
     });
 });
+
 
 // PUT update customer
 app.put('/api/customers/:id', (req, res, next) => {
