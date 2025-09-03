@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import AddressForm from "../../components/AddressForm";
 import AddressList from "../../components/AddressList";
+import api from "../../api/axios"; 
 
 function CustomerDetailPage() {
   const { id } = useParams(); 
@@ -10,24 +11,21 @@ function CustomerDetailPage() {
   const [error, setError] = useState(null);
   const [refreshFlag, setRefreshFlag] = useState(false); 
 
-  useEffect(() => {
-    const fetchCustomer = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    useEffect(() => {
+        const fetchCustomer = async () => {
+          try {
+            setLoading(true);
+            setError(null);
 
-        const res = await fetch(`http://localhost:5000/api/customers/${id}`);
-        if (!res.ok) throw new Error("Failed to fetch customer details");
-
-        const data = await res.json();
-        setCustomer(data.data); 
-      } catch (err) {
-        console.error("Error fetching customer:", err);
-        setError("Could not load customer details. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    };
+            const res = await api.get(`/customers/${id}`);
+            setCustomer(res.data.data); 
+          } catch (err) {
+            console.error("Error fetching customer:", err);
+            setError("Could not load customer details. Please try again.");
+          } finally {
+            setLoading(false);
+          }
+        };
 
     fetchCustomer();
   }, [id]);
@@ -57,9 +55,7 @@ function CustomerDetailPage() {
             onClick={async () => {
             if (!window.confirm("Are you sure you want to delete this customer?")) return;
             try {
-                await fetch(`http://localhost:5000/api/customers/${id}`, {
-                method: "DELETE",
-                });
+                await api.delete(`/customers/${id}`);
                 alert("Customer deleted successfully!");
                 window.location.href = "/"; // redirect back to list page
             } catch (err) {
@@ -71,7 +67,7 @@ function CustomerDetailPage() {
         >
             Delete Customer
         </button>
-        )}
+      )}
 
       <section style={{ marginTop: 20 }}>
         <h3>Add Address</h3>
