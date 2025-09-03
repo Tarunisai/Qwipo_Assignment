@@ -1,10 +1,8 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import api from "../../api/axios";
-import "./index.css";
 
 function CustomerFormPage() {
-  const { id } = useParams(); 
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     first_name: "",
@@ -18,30 +16,6 @@ function CustomerFormPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Fetch customer data if editing
-  useEffect(() => {
-    if (!id) return; 
-    const fetchCustomer = async () => {
-      try {
-        const res = await api.get(`/customers/${id}`);
-        const data = res.data.data;
-        setFormData({
-          first_name: data.first_name || "",
-          last_name: data.last_name || "",
-          phone_number: data.phone_number || "",
-          address_details: data.address_details || "",
-          city: data.city || "",
-          state: data.state || "",
-          pin_code: data.pin_code || ""
-        });
-      } catch (err) {
-        console.error("Failed to fetch customer:", err);
-        setError("Could not load customer data.");
-      }
-    };
-    fetchCustomer();
-  }, [id]);
-
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -52,55 +26,28 @@ function CustomerFormPage() {
     setError(null);
 
     try {
-      let customerId = id; // Use existing id if editing
-      if (!id) {
-        // Create new customer
-        const res = await api.post("/customers", {
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          phone_number: formData.phone_number
-        });
+      // Step 1: Create customer
+      const customerRes = await api.post("/customers", {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone_number: formData.phone_number
+      });
 
-        // Extract the ID safely
-        customerId = res.data?.data?.id || res.data?.customer?.id;
-        if (!customerId) throw new Error("New customer ID not returned by backend");
+      const newCustomerId = customerRes.data.data.id;
 
-        // Add first address if filled
-        if (formData.address_details) {
-          await api.post(`/customers/${customerId}/addresses`, {
-            address_details: formData.address_details,
-            city: formData.city,
-            state: formData.state,
-            pin_code: formData.pin_code
-          });
-        }
+      // Step 2: Create address for this customer
+      await api.post(`/customers/${newCustomerId}/addresses`, {
+        address_details: formData.address_details,
+        city: formData.city,
+        state: formData.state,
+        pin_code: formData.pin_code
+      });
 
-        alert("Customer added successfully!");
-      } else {
-        // Edit existing customer
-        await api.put(`/customers/${customerId}`, formData);
-
-        // Optionally, update first address if editing page has it
-        if (formData.address_details) {
-          await api.post(`/customers/${customerId}/addresses`, {
-            address_details: formData.address_details,
-            city: formData.city,
-            state: formData.state,
-            pin_code: formData.pin_code
-          });
-        }
-
-        alert("Customer updated successfully!");
-      }
-
-      navigate("/"); // redirect to dashboard
+      alert("Customer and address added successfully!");
+      navigate("/"); // go back to dashboard
     } catch (err) {
       console.error("Server error:", err);
-      if (err.response?.data?.message) {
-        setError(err.response.data.message);
-      } else {
-        setError(err.message || "Failed to submit data. See server logs.");
-      }
+      setError(err.response?.data?.message || "Failed to submit data. See server logs.");
     } finally {
       setLoading(false);
     }
@@ -108,9 +55,18 @@ function CustomerFormPage() {
 
   return (
     <div style={{ padding: 20 }}>
-      <h2>{id ? "Edit Customer" : "Add New Customer"}</h2>
+      <h2>Add New Customer with Address</h2>
       {error && <p style={{ color: "red" }}>{error}</p>}
-      <form onSubmit={handleSubmit} className="form-con">
+
+      <form
+        onSubmit={handleSubmit}
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "10px",
+          width: "300px"
+        }}
+      >
         <input
           name="first_name"
           placeholder="First Name"
@@ -137,27 +93,31 @@ function CustomerFormPage() {
           placeholder="Address"
           value={formData.address_details}
           onChange={handleChange}
+          required
         />
         <input
           name="city"
           placeholder="City"
           value={formData.city}
           onChange={handleChange}
+          required
         />
         <input
           name="state"
           placeholder="State"
           value={formData.state}
           onChange={handleChange}
+          required
         />
         <input
           name="pin_code"
           placeholder="Pin Code"
           value={formData.pin_code}
           onChange={handleChange}
+          required
         />
         <button type="submit" disabled={loading}>
-          {loading ? "Submitting..." : id ? "Update Customer" : "Add Customer"}
+          {loading ? "Submitting..." : "Add Customer"}
         </button>
       </form>
     </div>
