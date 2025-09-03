@@ -18,6 +18,7 @@ function CustomerFormPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Fetch customer data if editing
   useEffect(() => {
     if (!id) return; 
     const fetchCustomer = async () => {
@@ -46,48 +47,64 @@ function CustomerFormPage() {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setLoading(true);
-  setError(null);
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
 
-  try {
-    if (id) {
-      // Edit existing customer
-      await api.put(`/customers/${id}`, formData);
-      alert("Customer updated successfully!");
-      navigate(`/customers/${id}`);
-    } else {
-      // Create new customer
-      // 1️⃣ Create customer
-      const res = await api.post("/customers", {
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        phone_number: formData.phone_number
-      });
-      const newCustomerId = res.data.data.id;
+    try {
+      let customerId = id; // Use existing id if editing
+      if (!id) {
+        // Create new customer
+        const res = await api.post("/customers", {
+          first_name: formData.first_name,
+          last_name: formData.last_name,
+          phone_number: formData.phone_number
+        });
 
-      // 2️⃣ Add address immediately after customer creation
-      await api.post(`/customers/${newCustomerId}/addresses`, {
-        address_details: formData.address_details,
-        city: formData.city,
-        state: formData.state,
-        pin_code: formData.pin_code
-      });
+        // Extract the ID safely
+        customerId = res.data?.data?.id || res.data?.customer?.id;
+        if (!customerId) throw new Error("New customer ID not returned by backend");
 
-      alert("Customer and address added successfully!");
-      navigate(`/customers/${newCustomerId}`);
+        // Add first address if filled
+        if (formData.address_details) {
+          await api.post(`/customers/${customerId}/addresses`, {
+            address_details: formData.address_details,
+            city: formData.city,
+            state: formData.state,
+            pin_code: formData.pin_code
+          });
+        }
+
+        alert("Customer added successfully!");
+      } else {
+        // Edit existing customer
+        await api.put(`/customers/${customerId}`, formData);
+
+        // Optionally, update first address if editing page has it
+        if (formData.address_details) {
+          await api.post(`/customers/${customerId}/addresses`, {
+            address_details: formData.address_details,
+            city: formData.city,
+            state: formData.state,
+            pin_code: formData.pin_code
+          });
+        }
+
+        alert("Customer updated successfully!");
+      }
+
+      navigate("/"); // redirect to dashboard
+    } catch (err) {
+      console.error("Server error:", err);
+      if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else {
+        setError(err.message || "Failed to submit data. See server logs.");
+      }
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("Server error:", err);
-    if (err.response && err.response.data && err.response.data.message) {
-      setError(err.response.data.message);
-    } else {
-      setError("Failed to submit data. See server logs.");
-    }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -120,28 +137,24 @@ function CustomerFormPage() {
           placeholder="Address"
           value={formData.address_details}
           onChange={handleChange}
-          required
         />
         <input
           name="city"
           placeholder="City"
           value={formData.city}
           onChange={handleChange}
-          required
         />
         <input
           name="state"
           placeholder="State"
           value={formData.state}
           onChange={handleChange}
-          required
         />
         <input
           name="pin_code"
           placeholder="Pin Code"
           value={formData.pin_code}
           onChange={handleChange}
-          required
         />
         <button type="submit" disabled={loading}>
           {loading ? "Submitting..." : id ? "Update Customer" : "Add Customer"}

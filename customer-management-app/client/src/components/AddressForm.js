@@ -1,5 +1,5 @@
 import { useState } from "react";
-import api from "../api/axios"; 
+import api from "../api/axios";
 
 function AddressForm({ customerId, onAddressAdded }) {
   const [formData, setFormData] = useState({
@@ -15,6 +15,11 @@ function AddressForm({ customerId, onAddressAdded }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!customerId) {
+      alert("Please save the customer first.");
+      return;
+    }
+
     try {
       await api.post(`/customers/${customerId}/addresses`, formData);
       alert("Address added successfully!");
@@ -22,24 +27,49 @@ function AddressForm({ customerId, onAddressAdded }) {
       if (onAddressAdded) onAddressAdded();
     } catch (err) {
       console.error("Failed to add address:", err);
-      alert("Could not add address. See server logs.");
+      alert(err.response?.data?.message || "Could not add address. See server logs.");
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} 
-     style={{ 
-              display: "flex", 
-              flexDirection: "column", 
-              justifyContent: "flex-start", 
-              gap: "10px", 
-              width: "300px" 
-            }}
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: "10px",
+        width: "300px",
+        marginTop: "10px"
+      }}
     >
-      <input name="address_details" placeholder="Address" value={formData.address_details} onChange={handleChange} required />
-      <input name="city" placeholder="City" value={formData.city} onChange={handleChange} required />
-      <input name="state" placeholder="State" value={formData.state} onChange={handleChange} required />
-      <input name="pin_code" placeholder="Pin Code" value={formData.pin_code} onChange={handleChange} required />
+      <input
+        name="address_details"
+        placeholder="Address"
+        value={formData.address_details}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="city"
+        placeholder="City"
+        value={formData.city}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="state"
+        placeholder="State"
+        value={formData.state}
+        onChange={handleChange}
+        required
+      />
+      <input
+        name="pin_code"
+        placeholder="Pin Code"
+        value={formData.pin_code}
+        onChange={handleChange}
+        required
+      />
       <button type="submit">Add Address</button>
     </form>
   );
