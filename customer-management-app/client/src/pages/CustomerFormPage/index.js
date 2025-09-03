@@ -46,33 +46,48 @@ function CustomerFormPage() {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+  e.preventDefault();
+  setLoading(true);
+  setError(null);
 
-    try {
-      if (id) {
-        // edit customer
-        await api.put(`/customers/${id}`, formData);
-        alert("Customer updated successfully!");
-      } else {
-        // create new customer
-        await api.post("/customers", formData);
-        alert("Customer added successfully!");
-      }
-      navigate("/"); // redirect to dashboard (CustomerListPage)
-    } catch (err) {
-      console.error("Server error:", err);
-      
-      if (err.response && err.response.data && err.response.data.message) {
-        setError(err.response.data.message);
-      } else {
-        setError("Failed to submit data. See server logs.");
-      }
-    } finally {
-      setLoading(false);
+  try {
+    if (id) {
+      // Edit existing customer
+      await api.put(`/customers/${id}`, formData);
+      alert("Customer updated successfully!");
+      navigate(`/customers/${id}`);
+    } else {
+      // Create new customer
+      // 1️⃣ Create customer
+      const res = await api.post("/customers", {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone_number: formData.phone_number
+      });
+      const newCustomerId = res.data.data.id;
+
+      // 2️⃣ Add address immediately after customer creation
+      await api.post(`/customers/${newCustomerId}/addresses`, {
+        address_details: formData.address_details,
+        city: formData.city,
+        state: formData.state,
+        pin_code: formData.pin_code
+      });
+
+      alert("Customer and address added successfully!");
+      navigate(`/customers/${newCustomerId}`);
     }
-  };
+  } catch (err) {
+    console.error("Server error:", err);
+    if (err.response && err.response.data && err.response.data.message) {
+      setError(err.response.data.message);
+    } else {
+      setError("Failed to submit data. See server logs.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div style={{ padding: 20 }}>
