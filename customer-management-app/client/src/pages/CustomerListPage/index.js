@@ -145,14 +145,6 @@ function CustomerListPage() {
                   <td>
                     <Link to={`/edit-customer/${c.id}`}><button>Edit</button></Link>
                     <Link to={`/customers/${c.id}`}><button>View</button></Link>
-                  </td>
-                  <td>
-                    <Link to={`/edit-customer/${c.id}`}>
-                        <button>Edit</button>
-                    </Link>
-                    <Link to={`/customers/${c.id}`}>
-                        <button>View</button>
-                    </Link>
                     <button
                         onClick={async () => {
                         if (!window.confirm("Are you sure you want to delete this customer?")) return;
